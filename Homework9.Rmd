@@ -1,0 +1,108 @@
+---
+title: "Homework 4"
+output:
+  pdf_document: default
+  html_document: default
+author: Aditya Prasad - 
+        arp4759
+date: "2024-04-17"
+---
+
+```         
+                   Github: https://github.com/aprasad-1/Homework9.git
+                   
+```
+```{r setup, include=FALSE}
+library(tidyverse)
+library(mosaic)
+library(ggplot2)
+library(MatchIt)
+
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+
+```{r, echo = FALSE}
+turnout = read.csv('turnout.csv')
+
+prop(voted1998~GOTV_call, data = turnout)
+
+boot_turnout = do(10000)*diffprop(voted1998 ~ GOTV_call, data=resample(turnout))
+
+confint(boot_turnout, level = 0.95)
+
+```
+
+The proportion of those who voted in 1998 and received a GOTV call is approximately 0.6477 and those who voted in 1998 and did not receive a GOTV call is approximately 0.4442. We are 95% confident that the difference in proportions between those who voted in 1998 and received a GOTV call and those who did not is between 0.14 and 0.26.
+
+```{r, echo = FALSE}
+
+turnout_1996 <- turnout %>%
+  group_by(voted1996) %>%
+  summarise(gotv_call = mean(GOTV_call),
+            voted_1998 = mean(voted1998))
+  
+turnout_majorpty <- turnout %>%
+  group_by(MAJORPTY) %>%
+  summarise(gotv_call = mean(GOTV_call),
+            voted_1998 = mean(voted1998))
+
+turnout_1996
+turnout_majorpty
+
+ggplot(turnout) + 
+  geom_boxplot(aes(x=AGE, y=factor(voted1998))) +
+  ylab("Voted in 1998")
+
+ggplot(turnout) + 
+  geom_boxplot(aes(x=AGE, y=factor(GOTV_call))) + 
+  ylab("GOTV call")
+
+```
+Because the proportion of those who got a gotv call and those who voted in 1998 are greater when they had voted in 1996, voted 1996 is a confounding variable. Additionally, because the proportion of those who got a gotv call and those who voted in 1998 are greater when they are registered in a major party, MAJORPTY is a confounding variable. Finally, age is a confounding variable, because the distribution of ages is larger for those who voted in 1998 and those who received GOTV calls.
+
+```{r, echo = FALSE}
+turnout_match = matchit(GOTV_call ~ AGE + MAJORPTY + voted1996, data = turnout, ratio=5)
+
+matched = match.data(turnout_match)
+
+prop(voted1998 ~ GOTV_call, data=matched)
+
+boot_turnout_matched= do(10000)*diffprop(voted1998 ~ GOTV_call, data=resample(matched))
+confint(boot_turnout_matched)
+```
+
+The proportion of those who voted in 1998 and received a GOTV call is approximately 0.6477 and those who voted in 1998 and did not receive a GOTV call is approximately 0.57408. We are 95% confident that the difference in proportions between those who voted in 1998 and received a GOTV call and those who did not is between 0.007 and 0.13.
+
+
+```{r, echo = FALSE}
+
+solder = read.csv('solder.csv')
+
+ggplot(solder) + 
+  geom_boxplot(aes(x=skips, y=factor(Opening))) + 
+  ylab("Opening Size")
+
+
+ggplot(solder) + 
+  geom_boxplot(aes(x=skips, y=factor(Solder))) + 
+  ylab("Solder Thickness")
+
+
+```
+The first plot shows the relationship between opening size and skips. From the plot, we can see that the larger the opening size the less skips there are. The second plot shows the relationship between Solder thickness and skips. The thinner the Solder, the more skips there are. 
+
+```{r, echo = FALSE}
+
+solder_model = lm(skips~ Opening + Solder + Opening:Solder, data = solder)
+
+coef(solder_model) %>%
+  round(2)
+
+confint(solder_model, level = 0.95) %>% round(2)
+```
+The baseline rate of the number of solder skips in a circuit board is 0.39. When OpeningM = 1, OpeningS = 0, and SolderThin = 0, the rate of the average rate of skips is changed by 2.41. When OpeningM = 0, OpeningS = 1, and SolderThin = 0, the rate of the average rate of skips is changed by 5.13. When OpeningM = 0, OpeningS = 0, and SolderThin = 1 the rate of the average rate is changed by 2.28. When OpeningM = 1,and SolderThin = 1, the rate of the average rate of skips is changed by -0.74. When OpeningS = 1, and SolderThin = 1, the rate of the average rate of skips is changed by 9.65
+
+
+Based on the coefficient data, I would recommed a combination of a medium opening and a thin Solder because it has the lowest rate of skips in the circuit board of all the interactions. 
